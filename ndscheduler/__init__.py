@@ -91,7 +91,7 @@ def get_cli_args():
         "-V",
         action="version",
         help="Show version",
-        version=f"%(prog)s fla{pkg_resources.get_distribution('construct').version}",
+        version=f"%(prog)s fla{pkg_resources.get_distribution('ndscheduler').version}",
     )
 
     args, _ = parser.parse_known_args()
