@@ -121,8 +121,8 @@ AUTH_CREDENTIALS = {
 # List of admin users
 ADMIN_USER = []
 
-HELP_URL = "https://github.com/palto42/ndscheduler/blob/develop/README.md"
-ISSUES_URL = "https://github.com/palto42/ndscheduler/issues"
+HELP_URL = "https://github.com/MediadataTV/ndscheduler/blob/develop/README.md"
+ISSUES_URL = "https://github.com/MediadataTV/ndscheduler/issues"
 
 # Mail Server
 MAIL_SERVER = []

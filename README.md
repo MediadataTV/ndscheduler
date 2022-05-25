@@ -1,7 +1,6 @@
 # Nextdoor Scheduler
 
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](LICENSE.txt)
-[![Build Status](https://api.travis-ci.com/palto42/ndscheduler.svg)](https://travis-ci.com/palto42/ndscheduler)
 
 ``ndscheduler`` is a flexible python library for building your own cron-like system to schedule jobs, which is to run a tornado process to serve REST APIs and a web ui.
 
@@ -131,7 +130,7 @@ make install
 make clean
 ```
 
-Finally, send pull request. Please make sure the [CI](https://travis-ci.org/palto42/ndscheduler) passes for your PR.
+Finally, send pull request.
 
 ## REST APIs
 

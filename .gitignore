@@ -118,13 +118,9 @@ dmypy.json
 .pyre/
 
 
-# ---> VisualStudioCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.code-workspace
+# ---> Editors
+.vscode/
+.idea/
 
 # ---> test files
 todo_list.*
