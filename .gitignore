@@ -125,3 +125,8 @@ dmypy.json
 # ---> test files
 todo_list.*
 cookie.txt
+
+# ---> test config file
+test_config.yaml
+mediadata_scheduler
+main.py

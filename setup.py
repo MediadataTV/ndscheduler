@@ -73,7 +73,7 @@ setup(
     python_requires=">=3.6.4",
     install_requires=[
         "APScheduler >= 3.0.0",
-        "SQLAlchemy >= 1.0.0",
+        "SQLAlchemy >= 1.0.0, < 3.0.0",
         "future >= 0.15.2",
         "tornado >= 6",
         "python-dateutil >= 2.2",

@@ -83,7 +83,8 @@ class DatastoreBase(sched_sqlalchemy.SQLAlchemyJobStore):
         execution = {"eid": execution_id, "job_id": job_id, "state": state}
         execution.update(kwargs)
         execution_insert = self.executions_table.insert().values(**execution)
-        self.engine.execute(execution_insert)
+        with self.engine.connect() as connection:
+            connection.execute(execution_insert)
 
     def get_execution(self, execution_id):
         """Returns execution dict.
@@ -92,7 +93,8 @@ class DatastoreBase(sched_sqlalchemy.SQLAlchemyJobStore):
         :rtype: dict
         """
         selectable = select("*").where(self.executions_table.c.eid == execution_id)
-        rows = self.engine.execute(selectable)
+        with self.engine.connect() as connection:
+            rows = connection.execute(selectable)
 
         for row in rows:
             return self._build_execution(row)
@@ -105,7 +107,8 @@ class DatastoreBase(sched_sqlalchemy.SQLAlchemyJobStore):
         execution_update = (
             self.executions_table.update().where(self.executions_table.c.eid == execution_id).values(**kwargs)
         )
-        self.engine.execute(execution_update)
+        with self.engine.connect() as connection:
+            connection.execute(execution_update)
 
     def _build_execution(self, row):
         """Return job execution info from a row of scheduler_execution table.
@@ -163,8 +166,8 @@ class DatastoreBase(sched_sqlalchemy.SQLAlchemyJobStore):
             .where(self.executions_table.c.scheduled_time.between(start_time, end_time))
             .order_by(desc(self.executions_table.c.updated_time))
         )
-
-        rows = self.engine.execute(selectable)
+        with self.engine.connect() as connection:
+            rows = connection.execute(selectable)
 
         return_json = {"executions": [self._build_execution(row) for row in rows]}
 
@@ -177,7 +180,8 @@ class DatastoreBase(sched_sqlalchemy.SQLAlchemyJobStore):
             .where(self.executions_table.c.state < constants.EXECUTION_STATUS_STOPPED)
             .values(state=constants.EXECUTION_STATUS_INTERRUPTED)
         )
-        result = self.engine.execute(sql_command)
+        with self.engine.connect() as connection:
+            result = connection.execute(sql_command)
         if result.rowcount > 0:
             logger.warning(f"Cleaned Executions: {result.rowcount}")
 
@@ -192,7 +196,8 @@ class DatastoreBase(sched_sqlalchemy.SQLAlchemyJobStore):
         audit_log = {"job_id": job_id, "job_name": job_name, "event": event}
         audit_log.update(kwargs)
         log_insert = self.auditlogs_table.insert().values(**audit_log)
-        self.engine.execute(log_insert)
+        with self.engine.connect() as connection:
+            connection.execute(log_insert)
 
     def get_audit_logs(self, time_range_start, time_range_end):
         """Returns a list of audit logs.
@@ -220,8 +225,8 @@ class DatastoreBase(sched_sqlalchemy.SQLAlchemyJobStore):
             .where(self.auditlogs_table.c.created_time.between(start_time, end_time))
             .order_by(desc(self.auditlogs_table.c.created_time))
         )
-
-        rows = self.engine.execute(selectable)
+        with self.engine.connect() as connection:
+            rows = connection.execute(selectable)
 
         return_json = {"logs": [self._build_audit_log(row) for row in rows]}
 
