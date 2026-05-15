@@ -181,6 +181,27 @@ body {
     font-size: 10px;
 }
 
+/* Wide modal for job add/edit (overrides Bootstrap modal-lg at 900px) */
+@media (min-width: 992px) {
+  .modal-xl .modal-dialog {
+    width: 90%;
+    max-width: 1100px;
+  }
+}
+
+/* JSONEditor container inside modals */
+.jsoneditor-container {
+  height: 320px;
+  width: 100%;
+}
+.jsoneditor {
+  border-color: #cccccc;
+}
+.jsoneditor-menu {
+  background-color: #555555;
+  border-bottom-color: #444444;
+}
+
 /*
  * Table styling
  */

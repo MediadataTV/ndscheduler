@@ -65,8 +65,8 @@
         {
             jobs: [{
                 "job_id": "d8f376e858a411e4b6ae22000ac58d05",
-                "job_class_string": "simple_scheduler.jobs.clean_apns.CleanAPNsJob",
-                "name": "Clean APNs",
+                "job_class_string": "simple_scheduler.jobs.shell_job.ShellJob",
+                "name": "Shell Job",
                 "pub_args": ["arg1": 1, "arg2": 2],
                 "month": "*",
                 "day_of_week": "*",
@@ -131,8 +131,8 @@
 
         {
           "job_id": "d8f376e858a411e4b6ae22000ac58d05",
-          "job_class_string": "simple_scheduler.jobs.clean_apns.CleanAPNsJob",
-          "name": "Clean APNs",
+          "job_class_string": "simple_scheduler.jobs.shell_job.ShellJob",
+          "name": "Shell Job",
           "pub_args": ["arg1": 1, "arg2": 2],
           "month": "*",
           "day_of_week": "*",
@@ -187,8 +187,8 @@
 * **Data Params**
 
         {
-            "job_class_string": "simple_scheduler.jobs.clean_apns.CleanAPNsJob",
-            "name": "Clean APNs",
+            "job_class_string": "simple_scheduler.jobs.shell_job.ShellJob",
+            "name": "Shell Job",
             "pub_args": ["arg1": 1, "arg2": 2],
             "month": "*",
             "day_of_week": "*",
@@ -223,8 +223,8 @@ Required fields: `job_class_string` and `name`
       contentType: "application/json",
       type : "POST",
       data: {
-            "job_class_string": "simple_scheduler.jobs.clean_apns.CleanAPNsJob",
-            "name": "Clean APNs",
+            "job_class_string": "simple_scheduler.jobs.shell_job.ShellJob",
+            "name": "Shell Job",
             "pub_args": ["arg1": 1, "arg2": 2],
             "month": "*",
             "day_of_week": "*",
@@ -313,8 +313,8 @@ Required fields: `job_class_string` and `name`
 * **Data Params**
 
         {
-            "job_class_string": "simple_scheduler.jobs.clean_apns.CleanAPNsJob",
-            "name": "Clean APNs",
+            "job_class_string": "simple_scheduler.jobs.shell_job.ShellJob",
+            "name": "Shell Job",
             "pub_args": ["arg1": 1, "arg2": 2],
             "month": "*",
             "day_of_week": "*",
