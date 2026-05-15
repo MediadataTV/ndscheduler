@@ -1,6 +1,7 @@
 """Settings to override default settings."""
 
 import logging
+import os
 
 #
 # Override settings
@@ -24,6 +25,7 @@ DATABASE_CONFIG_DICT = {
     'file_path': '/opt/data/datastore.db'
 }
 
-STATIC_DIR_PATH = '/opt/scheduler/ui/static' #:static asset directory paths:
+STATIC_DIR_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                               'ndscheduler', 'static')
 TEMPLATE_DIR_PATH = STATIC_DIR_PATH #:template directory path:
 APP_INDEX_PAGE = 'index.html' #:the file name of the single page app's html:
