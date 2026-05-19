@@ -213,3 +213,30 @@ class DatastoreBase(sched_sqlalchemy.SQLAlchemyJobStore):
             'created_time': self.get_time_isoformat_from_db(row.created_time),
             'description': row.description}
         return return_dict
+
+    def purge_old_executions(self, retention_days):
+        """Delete execution records older than retention_days days.
+
+        :param int retention_days: Number of days to keep. 0 = disabled.
+        """
+        import dateutil.tz
+        from datetime import datetime, timedelta
+        utc = dateutil.tz.gettz('UTC')
+        cutoff = datetime.utcnow().replace(tzinfo=utc) - timedelta(days=int(retention_days))
+        delete_stmt = tables.EXECUTIONS.delete().where(
+            tables.EXECUTIONS.c.scheduled_time < cutoff)
+        self.engine.execute(delete_stmt)
+
+    def purge_old_audit_logs(self, retention_days):
+        """Delete audit log records older than retention_days days.
+
+        :param int retention_days: Number of days to keep. 0 = disabled.
+        """
+        import dateutil.tz
+        from datetime import datetime, timedelta
+        utc = dateutil.tz.gettz('UTC')
+        cutoff = datetime.utcnow().replace(tzinfo=utc) - timedelta(days=int(retention_days))
+        delete_stmt = tables.AUDIT_LOGS.delete().where(
+            tables.AUDIT_LOGS.c.created_time < cutoff)
+        self.engine.execute(delete_stmt)
+
