@@ -43,13 +43,17 @@ define(['utils',
 
   'use strict';
 
+  // Module-level singleton — survives Backbone view re-creation so we never
+  // call new JSONEditor() on an element that already has an editor in it.
+  var editMultiConfigEditor = null;
+
   return Backbone.View.extend({
 
-    // Holds the JSONEditor instance for the Multi Config field
-    multiConfigEditor: null,
-
     initialize: function() {
-      $('body').append(EditJobModalHtml);
+      // Only inject the modal HTML once — guard against view re-initialization.
+      if (!$('#edit-job-modal').length) {
+        $('body').append(EditJobModalHtml);
+      }
 
       var self = this;
       var jobsMetaInfo = $.parseJSON($('#jobs-meta-info').html());
@@ -80,10 +84,12 @@ define(['utils',
       this.bindModalPopupEvent();
     },
 
-    // Create the JSONEditor for the edit modal if it does not exist yet
+    // Create the JSONEditor for the edit modal if it does not exist yet.
+    // Uses the module-level editMultiConfigEditor so the check survives
+    // across Backbone view re-creation.
     _ensureEditEditor: function() {
-      if (!this.multiConfigEditor) {
-        this.multiConfigEditor = new JSONEditor(
+      if (!editMultiConfigEditor) {
+        editMultiConfigEditor = new JSONEditor(
           document.getElementById('edit-input-job-multi-config-editor'),
           {
             mode: 'code',
@@ -92,7 +98,7 @@ define(['utils',
             onError: function(err) { utils.alertError('JSON error: ' + err.toString()); }
           }
         );
-        this.multiConfigEditor.set({});
+        editMultiConfigEditor.set({});
       }
     },
 
@@ -139,14 +145,14 @@ define(['utils',
             var parsed = JSON.parse(rawPubArgs);
             if (Array.isArray(parsed) && parsed.length === 2) {
               $('#edit-input-job-task-args').val(JSON.stringify(parsed[0]));
-              this.multiConfigEditor.set(parsed[1]);
+              editMultiConfigEditor.set(parsed[1]);
             } else {
               $('#edit-input-job-task-args').val(rawPubArgs);
-              this.multiConfigEditor.set({});
+              editMultiConfigEditor.set({});
             }
           } catch (err) {
             $('#edit-input-job-task-args').val(rawPubArgs);
-            this.multiConfigEditor.set({});
+            editMultiConfigEditor.set({});
           }
         } else {
           $('#edit-multi-config-group').hide();
@@ -224,13 +230,13 @@ define(['utils',
         }
 
         if (isShellMulti) {
-          if (!self.multiConfigEditor) {
+          if (!editMultiConfigEditor) {
             utils.alertError('Multi Config editor not initialized.');
             return;
           }
           var multiConfig;
           try {
-            multiConfig = self.multiConfigEditor.get();
+            multiConfig = editMultiConfigEditor.get();
           } catch (err) {
             utils.alertError('Multi Config contains invalid JSON: ' + err.toString());
             return;

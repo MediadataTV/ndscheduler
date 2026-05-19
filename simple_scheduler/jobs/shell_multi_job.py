@@ -10,20 +10,24 @@ pub_args layout (JSON array with two elements):
 
 For each key K the job calls:
     base_args + multi_config[K]
-All sub-processes run sequentially; only the return code is captured (no stdout/stderr
-buffering so there is no risk of blocking or memory pressure in production).
+All sub-processes run IN PARALLEL via a thread pool (subprocess.call releases the GIL
+while the OS waits, so threads are the right primitive here). Only the return code is
+captured — no stdout/stderr buffering so there is no risk of blocking or memory pressure.
 """
 
 from __future__ import absolute_import
 
 import json
 import logging
+import os
+import socket
 
-from subprocess import call
+from subprocess import Popen
 
 from ndscheduler import job
-from ndscheduler.core import scheduler_manager
 from ndscheduler import constants
+from ndscheduler import utils
+from ndscheduler.core import scheduler_manager
 
 logger = logging.getLogger(__name__)
 
@@ -65,61 +69,125 @@ class ShellMultiJob(job.JobBase):
         }
 
     def run(self, base_args, multi_config, **kwargs):
-        """Execute base_args + per-key extra args for every key in multi_config.
+        """Execute base_args + per-key extra args for every key in multi_config IN PARALLEL.
+
+        All sub-processes are spawned first (Popen returns immediately), then we
+        wait for every one of them to finish.  No threads, no thread pool —
+        pure OS-level process parallelism.
+
+        One execution log row is written to the datastore per config key so that
+        each sub-command is individually visible and traceable in the UI.
 
         :param list base_args: Base command token list.
         :param dict multi_config: Maps config key name to list of extra arg strings.
-        :return: Dict mapping each key to its return code.
+        :return: Dict mapping each key to {'returncode': <int>}.
         :rtype: dict
         """
-        results = {}
-
         if not isinstance(base_args, (list, tuple)):
             raise ValueError('base_args must be a JSON array of strings')
 
         if not isinstance(multi_config, dict):
             raise ValueError('multi_config must be a JSON object')
 
+        # Try to get the datastore; not fatal if unavailable
         datastore = None
         try:
             scheduler = scheduler_manager.SchedulerManager.get_instance()
             datastore = scheduler.get_datastore()
         except Exception:
-            # If we cannot reach the datastore for audit logging, continue anyway
-            logger.warning('ShellMultiJob: could not get datastore for audit logging')
+            logger.warning('ShellMultiJob: could not get datastore for sub-execution logging')
 
+        hostname = socket.gethostname()
+        pid = os.getpid()
+
+        # Validate all entries and build the command list up-front
+        tasks = {}
+        results = {}
         for key, extra_args in multi_config.items():
             if not isinstance(extra_args, (list, tuple)):
                 logger.warning('ShellMultiJob: skipping key %r — value is not a list', key)
                 results[key] = {'returncode': -1, 'error': 'value must be a list of strings'}
                 continue
+            tasks[key] = list(base_args) + list(extra_args)
 
-            cmd = list(base_args) + list(extra_args)
+        if not tasks:
+            return results
 
-            logger.info('ShellMultiJob [%s]: running %r', key, cmd)
+        # --- Phase 1: spawn ALL processes immediately (Popen returns at once) ---
+        # For each key we also create a dedicated execution row (RUNNING) so the
+        # sub-command appears immediately in the UI with its own traceable entry.
+        procs = {}   # key -> (Popen, sub_execution_id)
+        for key, cmd in tasks.items():
+            logger.info('ShellMultiJob [%s]: spawning %r', key, cmd)
 
-            # Log the per-key dispatch to the audit log so each variant is traceable
+            sub_eid = None
             if datastore and self.job_id:
+                sub_eid = utils.generate_uuid()
+                description = '[%s] hostname: %s | pid: %s | cmd: %s' % (
+                    key, hostname, pid, json.dumps(cmd)
+                )
                 try:
-                    datastore.add_audit_log(
+                    datastore.add_execution(
+                        sub_eid,
                         self.job_id,
-                        'ShellMultiJob',
-                        constants.AUDIT_LOG_CUSTOM_RUN,
-                        description='key=%s execution_id=%s cmd=%s' % (
-                            key, self.execution_id, json.dumps(cmd)
-                        )
+                        constants.EXECUTION_STATUS_RUNNING,
+                        hostname=hostname,
+                        pid=pid,
+                        description=description,
+                        task_id='%s:%s' % (self.execution_id, key)
                     )
                 except Exception as exc:
-                    logger.warning('ShellMultiJob: audit log failed for key %r: %s', key, exc)
+                    logger.warning(
+                        'ShellMultiJob [%s]: could not add sub-execution row: %s', key, exc
+                    )
+                    sub_eid = None
 
             try:
-                rc = call(cmd)
+                proc = Popen(cmd)
             except Exception as exc:
-                logger.exception('ShellMultiJob [%s] raised an exception: %s', key, exc)
+                logger.exception('ShellMultiJob [%s] failed to spawn: %s', key, exc)
+                proc = None
+                results[key] = {'returncode': -1}
+                if datastore and sub_eid:
+                    try:
+                        datastore.update_execution(
+                            sub_eid,
+                            state=constants.EXECUTION_STATUS_FAILED,
+                            description='[%s] spawn failed: %s' % (key, exc)
+                        )
+                    except Exception:
+                        pass
+
+            if proc is not None:
+                procs[key] = (proc, sub_eid)
+
+        # --- Phase 2: wait for every spawned process to finish ---
+        for key, (proc, sub_eid) in procs.items():
+            try:
+                rc = proc.wait()
+            except Exception as exc:
+                logger.exception('ShellMultiJob [%s] wait() raised: %s', key, exc)
                 rc = -1
 
             results[key] = {'returncode': rc}
             logger.info('ShellMultiJob [%s]: finished with returncode=%d', key, rc)
+
+            if datastore and sub_eid:
+                state = (constants.EXECUTION_STATUS_SUCCEEDED
+                         if rc == 0
+                         else constants.EXECUTION_STATUS_FAILED)
+                try:
+                    datastore.update_execution(
+                        sub_eid,
+                        state=state,
+                        description='[%s] hostname: %s | pid: %s | returncode: %d' % (
+                            key, hostname, pid, rc),
+                        result=json.dumps({'returncode': rc})
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        'ShellMultiJob [%s]: could not update sub-execution row: %s', key, exc
+                    )
 
         return results
 
@@ -132,5 +200,3 @@ if __name__ == '__main__':
         {'KEY1': ['world'], 'KEY2': ['python']}
     )
     print(result)
-
-

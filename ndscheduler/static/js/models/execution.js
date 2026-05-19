@@ -35,12 +35,21 @@ define(['config',
     getNameHTMLString: function() {
       var jobId = this.get('job').job_id,
           executionId = this.get('execution_id');
+      var taskId = this.get('task_id') || '';
 
       var jobName = '';
       try {
         jobName = this.get('job')['name'];
       } catch (e) {
         jobName = '<span class="failed-color">Unknown Job</span>';
+      }
+
+      // For ShellMultiJob sub-executions task_id is set to "<parent_eid>:<KEY>".
+      // Extract the key part and append it as a visible label in the Name column.
+      var colonIdx = taskId.indexOf(':');
+      if (colonIdx !== -1) {
+        var subKey = _.escape(taskId.substring(colonIdx + 1));
+        jobName = jobName + ' <span class="label label-info">' + subKey + '</span>';
       }
 
       return '<a href="/#executions/' + executionId +

@@ -44,14 +44,18 @@ define(['utils',
 
   'use strict';
 
-  return Backbone.View.extend({
+  // Module-level singleton — survives Backbone view re-creation so we never
+  // call new JSONEditor() on an element that already has an editor in it.
+  var addMultiConfigEditor = null;
 
-    // Holds the JSONEditor instance for the Multi Config field
-    multiConfigEditor: null,
+  return Backbone.View.extend({
 
     initialize: function() {
 
-      $('body').append(AddJobModalHtml);
+      // Only inject the modal HTML once — guard against view re-initialization.
+      if (!$('#add-job-modal').length) {
+        $('body').append(AddJobModalHtml);
+      }
       this.bindAddJobConfirmClickEvent();
 
       var self = this;
@@ -74,9 +78,11 @@ define(['utils',
         if (e.choice.id.indexOf('ShellMultiJob') !== -1) {
           $('#add-multi-config-group').show();
           $('#input-job-task-args').val('[]');
-          // Init JSONEditor lazily the first time the section is shown
-          if (!self.multiConfigEditor) {
-            self.multiConfigEditor = new JSONEditor(
+          // Init JSONEditor lazily the first time the section is shown.
+          // addMultiConfigEditor is module-level so it is never re-created on
+          // an element that already contains an editor.
+          if (!addMultiConfigEditor) {
+            addMultiConfigEditor = new JSONEditor(
               document.getElementById('input-job-multi-config-editor'),
               {
                 mode: 'code',
@@ -85,7 +91,7 @@ define(['utils',
                 onError: function(err) { utils.alertError('JSON error: ' + err.toString()); }
               }
             );
-            self.multiConfigEditor.set({});
+            addMultiConfigEditor.set({});
           }
         } else {
           $('#add-multi-config-group').hide();
@@ -136,13 +142,13 @@ define(['utils',
         }
 
         if (isShellMulti) {
-          if (!self.multiConfigEditor) {
+          if (!addMultiConfigEditor) {
             utils.alertError('Multi Config editor not initialized. Please re-select the job class.');
             return;
           }
           var multiConfig;
           try {
-            multiConfig = self.multiConfigEditor.get();
+            multiConfig = addMultiConfigEditor.get();
           } catch (err) {
             utils.alertError('Multi Config contains invalid JSON: ' + err.toString());
             return;
