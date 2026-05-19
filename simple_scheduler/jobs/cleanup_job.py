@@ -67,6 +67,16 @@ class CleanupJob(job.JobBase):
         else:
             results['audit_logs_deleted'] = 'skipped'
 
+        # VACUUM reclaims the freed pages and shrinks the actual file on disk.
+        # SQLite never shrinks the file automatically after DELETE.
+        try:
+            datastore.engine.execute('VACUUM')
+            logger.info('CleanupJob: VACUUM completed.')
+            results['vacuum'] = 'done'
+        except Exception as e:
+            logger.exception('CleanupJob: VACUUM failed: %s', e)
+            results['vacuum'] = 'failed: %s' % e
+
         return results
 
     # ------------------------------------------------------------------
