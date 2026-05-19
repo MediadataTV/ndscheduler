@@ -6,13 +6,23 @@
                 <h4 class="modal-title" id="run-job-name">Run a job</h4>
             </div>
             <div class="modal-body">
-                <span id="run-job-task"></span>
-                <p class="scheduled-color">
-                    Arguments:
-                    <span id="run-job-pubargs">
-
-                    </span>
-                </p>
+                <p><strong>Class:</strong> <span id="run-job-task" class="text-muted"></span></p>
+                <div id="run-job-args-section">
+                    <p class="scheduled-color">
+                        <strong>Arguments:</strong>
+                        <span id="run-job-pubargs"></span>
+                    </p>
+                </div>
+                <div id="run-job-multi-section" style="display:none">
+                    <p class="scheduled-color">
+                        <strong>Base Command:</strong>
+                        <code id="run-job-base-args"></code>
+                    </p>
+                    <p class="scheduled-color">
+                        <strong>Will run one process per config key:</strong>
+                        <span id="run-job-config-keys"></span>
+                    </p>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
